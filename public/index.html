@@ -1,0 +1,210 @@
+<!-- This is a static file -->
+<!-- served from your routes in server.js -->
+
+<!-- You might want to try something fancier: -->
+<!-- html/nunjucks docs: http://mozilla.github.io/nunjucks/ -->
+<!-- jade: http://jade-lang.com/ -->
+<!-- haml: http://haml.info/tutorial.html -->
+<!-- hbs(handlebars): http://handlebarsjs.com/expressions.html -->
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Welcome to HyperDev!</title>
+    <meta name="description" content="A cool thing made with HyperDev">
+    <link id="favicon" rel="icon" href="https://cdn.glitch.com/6d5d6d05-a213-4c88-b367-619df461ca1a%2Ffavicon.ico?1507996145635" type="image/x-icon">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <link rel="stylesheet" href="/style.css">
+    
+<!--     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.5/popper.js"></script> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.2/umd/popper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/io-p2p.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/riot@3.7/riot+compiler.min.js"></script>
+      <script src="/qrcode.min.js"></script>
+
+  </head>
+  <body >
+    	
+
+
+   
+<section class="container sequencer">
+  <br>
+<div id="qrcode"></div>
+  <br>
+  
+  <div id="app">
+
+    <h1 v-if="error">
+      {{error}}
+    </h1>
+      sequence port: <select v-model="sequencePort">
+        <option disabled value="">Please select one</option>
+        <option v-for="(port,o1) in midiOutputPorts" v-bind:value="o1">{{port.name}}</option>
+      </select><br>
+        
+tempo: <input type="number" step="1" min="1" max="400" v-model="tempo">
+    
+    <button v-on:click="startX">
+      start
+    </button> 
+      
+    
+    <input type="range" v-model="Math.round(gamma)" min="-90" max="90" step="1">    
+    <hr>
+    <div class="row justify-content-center">
+      <div class=".col-md-3 .offset-md-3">
+        <input type="range" step="1" min="0" max="127" v-model="res" name="res" v-on:input="updateRes">
+        <input type="number" step="1" min="0" max="127" v-model="res" name="res">
+      </div>
+    </div>
+    
+
+  </div><!-- app div -->
+</section>
+
+
+    
+    
+
+
+<script src="/midi.js"></script>
+
+<script src="/client.js"></script>
+<script>
+
+
+  
+  
+  
+  var app = new Vue({
+  el: '#app',
+  data: {
+    error: '',
+    const : { CC_CUTOFF : 74, CC_RESONANCE : 71},
+    gamma : 0,
+    res : 0,
+    beatPortStatus : 0,
+    sequencePortStatus : 0,
+    midiInputPorts : [{'name':'x'}],
+    midiOutputPorts : [{'name':'x'}],
+    sequencePort : {},
+    start : false,
+    tempo : 120,
+    controls : {
+      filter1 : {
+        update : (val) => {
+          console.log("filter1", val);
+        },
+        client : {}
+      }
+    },
+    midiChannel : 0x93,
+
+
+    
+    playNote : function(note, duration, deviceNo){
+      let device = app.midiOutputPorts[deviceNo];
+      if (duration == 0) throw new Error('baaaad note');
+      console.log('note, duration', note, duration);
+      setTimeout(()=>{app.noteOff(note, deviceNo)}, duration);
+      device.send([app.midiChannel, note, 127]);
+    },
+    noteOff : function(note, deviceNo){
+      let device = app.midiOutputPorts[deviceNo];
+      console.log('note off');
+      device.send([app.midiChannel - 0x10, note, 0]);
+    },
+    setOutputMidiPort : function (portIndex){
+      app.sequencePort = portIndex;
+    }
+  },
+    methods : {
+      test : function(){
+      
+      },
+      startX: ()=>{
+        setInterval(()=>{
+          app.playNote(35, 300, app.sequencePort)
+        }, 1000)
+      },
+      updateRes : () => {
+        p2p.emit("resonance", {res: app.res});
+      }
+    },
+  created : ()=>{
+    console.log("app runs, launching midi");
+    if (isHost()){
+      _initMidi();
+    }
+  }
+});
+  
+
+
+  let lastSent = [];
+  let blockSend = [];
+  function msend(arg){
+    if (typeof app.sequencePort === 'undefined') return;
+  
+  
+    if (!blockSend[arg[0]+':'+arg[1]] ){ 
+      app.midiOutputPorts[app.sequencePort].send(arg);
+      blockSend[arg[0]+':'+arg[1]] = 1;
+      setInterval(()=>{
+        blockSend[arg[0]+':'+arg[1]] = 0;
+      }, 50);
+    }
+  }
+  
+  
+function restrict(gamma){
+  let gammaBound = Math.abs(30 + gamma * 2);
+  gammaBound = Math.min(gammaBound, 127);
+  gammaBound = Math.max(0, gammaBound);
+  return Math.round(gammaBound);
+}  
+  
+function isHost(){
+  return (location.search === '?host' || localStorage.host)
+}
+  
+  var lastReceived = 0;
+$(()=>{
+  socket.on('o', function(msg){
+    if (msg.timestamp < lastReceived) return;
+    lastReceived = msg.timestamp;
+    let beta = msg.beta;
+    let gamma = msg.gamma || 0;
+    let alpha = msg.alpha;
+    app.gamma = gamma;
+    
+    if (isHost()){
+      msend([0xb3, app.const.CC_CUTOFF, restrict(app.gamma)]);
+    }
+  });
+  
+  socket.on('res', (msg) => {
+    console.log('res', msg.res);
+    app.res = msg.res;
+    if (typeof app.sequencePort === 'undefined') return;
+    let arg = [0xb3, app.const.CC_RESONANCE, msg.res];
+    // msend()
+    app.midiOutputPorts[app.sequencePort].send(arg);
+  })
+})  
+</script>    
+
+    
+    <script src="qr-start.js"></script>
+  </body>
+</html>
