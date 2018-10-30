@@ -17,7 +17,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://cdn.jsdelivr.net/npm/vue"></script>
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/style.css"> 
     
 <!--     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.5/popper.js"></script> -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.2/umd/popper.min.js"></script>
@@ -25,6 +25,7 @@
     
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://bootswatch.com/4/darkly/bootstrap.min.css">
     
     <script src="/socket.io/socket.io.js"></script>
     <script src="/io-p2p.js"></script>
@@ -189,7 +190,7 @@ $(()=>{
     app.gamma = gamma;
     
     if (isHost()){
-      msend([0xb3, app.const.CC_CUTOFF, restrict(app.gamma)]);
+      msend([0xb2, app.const.CC_CUTOFF, restrict(app.gamma)]);
     }
   });
   
@@ -197,7 +198,7 @@ $(()=>{
     console.log('res', msg.res);
     app.res = msg.res;
     if (typeof app.sequencePort === 'undefined') return;
-    let arg = [0xb3, app.const.CC_RESONANCE, msg.res];
+    let arg = [0xb2, app.const.CC_RESONANCE, msg.res];
     // msend()
     app.midiOutputPorts[app.sequencePort].send(arg);
   })
